@@ -187,7 +187,7 @@ pinepix/
 1. **Guest**
    - View public landing page
    - View announcements
-   - Limited chatbot access (FAQ mode only)
+   - Full chatbot access (FAQ + AI mode)
 
 2. **Entrepreneur**
    - All guest features
