@@ -17,13 +17,22 @@ CREATE TABLE IF NOT EXISTS users (
     ic_passport VARCHAR(100),
     profile_image VARCHAR(255),
     business_category VARCHAR(255),
+    ssm_no VARCHAR(100) NULL,
+    ssm_document VARCHAR(255) NULL,
+    approval_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    rejection_reason TEXT NULL,
+    approved_by INT NULL,
+    approved_at DATETIME NULL,
+    first_login_completed TINYINT(1) DEFAULT 0,
     email_verified TINYINT(1) DEFAULT 0,
     reset_token VARCHAR(255) NULL,
     reset_token_expiry DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_email (email),
-    INDEX idx_role (role)
+    INDEX idx_role (role),
+    INDEX idx_approval_status (approval_status),
+    FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- Farms Table
@@ -52,6 +61,7 @@ CREATE TABLE IF NOT EXISTS shops (
     longitude DECIMAL(10,7),
     operation_hours VARCHAR(255),
     contact VARCHAR(100),
+    images TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -65,6 +75,7 @@ CREATE TABLE IF NOT EXISTS announcements (
     type ENUM('price','promotion','roadshow','news','other') DEFAULT 'other',
     description TEXT,
     image VARCHAR(255),
+    images TEXT NULL,
     created_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -134,6 +145,6 @@ ON DUPLICATE KEY UPDATE setting_key = setting_key;
 
 -- Create default admin user (password: admin123)
 -- Password hash for 'admin123'
-INSERT INTO users (role, name, email, password_hash, email_verified) VALUES
-('admin', 'System Administrator', 'admin@pinepix.com', '$2y$10$6XCzG6r9xsJNNFSq6Zwbk.DmhNjrqAYYf7Cq9604sHTvKxb87wE.q', 1)
+INSERT INTO users (role, name, email, password_hash, email_verified, approval_status, first_login_completed) VALUES
+('admin', 'System Administrator', 'admin@pinepix.com', '$2y$10$6XCzG6r9xsJNNFSq6Zwbk.DmhNjrqAYYf7Cq9604sHTvKxb87wE.q', 1, 'approved', 1)
 ON DUPLICATE KEY UPDATE email = email;

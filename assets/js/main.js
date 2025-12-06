@@ -56,6 +56,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof $.fn.DataTable !== 'undefined') {
         $('.data-table').each(function() {
             const table = $(this);
+            // Skip if already initialized
+            if ($.fn.DataTable.isDataTable(this)) {
+                return;
+            }
             const isMobile = window.innerWidth < 640;
             
             table.DataTable({

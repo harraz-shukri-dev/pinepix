@@ -16,8 +16,17 @@ include VIEWS_PATH . 'partials/header.php';
                 
                 <?php if (isset($error) && $error): ?>
                     <div class="mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-lg text-red-800 flex items-center justify-between">
-                        <span><i class="fas fa-exclamation-circle mr-2"></i><?= $error ?></span>
+                        <span><i class="fas fa-exclamation-circle mr-2"></i><?= htmlspecialchars($error) ?></span>
                         <button onclick="this.parentElement.remove()" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (isset($success) && $success): ?>
+                    <div class="mb-4 p-4 bg-green-50 border-2 border-green-200 rounded-lg text-green-800 flex items-center justify-between">
+                        <span><i class="fas fa-check-circle mr-2"></i><?= $success ?></span>
+                        <button onclick="this.parentElement.remove()" class="text-green-600 hover:text-green-800">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -94,6 +103,34 @@ include VIEWS_PATH . 'partials/header.php';
                         </select>
                     </div>
                     
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="ssm_no" class="block text-sm font-medium text-gray-700 mb-2">SSM Number <span class="text-red-500">*</span></label>
+                            <input type="text" id="ssm_no" name="ssm_no" required placeholder="e.g., 123456789"
+                                   class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-primary-400 outline-none transition">
+                            <p class="mt-1 text-xs text-gray-500">Your SSM (Suruhanjaya Syarikat Malaysia) registration number</p>
+                        </div>
+                        
+                        <div>
+                            <label for="ssm_document" class="block text-sm font-medium text-gray-700 mb-2">SSM Document <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <input type="file" id="ssm_document" name="ssm_document" required accept=".pdf,.jpg,.jpeg,.png"
+                                       class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-primary-400 outline-none transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100">
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">Upload SSM certificate (PDF, JPG, or PNG, max 10MB)</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-blue-600 mt-1 mr-3"></i>
+                            <div class="text-sm text-blue-800">
+                                <p class="font-semibold mb-1">Account Approval Required</p>
+                                <p>Your registration will be reviewed by our admin team. You will receive an email notification once your account is approved. This process typically takes 1-2 business days.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <button type="submit" class="w-full bg-primary-400 text-white py-3 rounded-lg font-semibold hover:bg-primary-500 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
                         <i class="fas fa-user-plus mr-2"></i>Create Account
                     </button>
@@ -127,6 +164,39 @@ include VIEWS_PATH . 'partials/header.php';
             icon.classList.add('fa-eye');
         }
     }
+    
+    // Client-side file validation
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form[enctype="multipart/form-data"]');
+        const fileInput = document.getElementById('ssm_document');
+        
+        if (form && fileInput) {
+            form.addEventListener('submit', function(e) {
+                // Validate file before submit
+                if (fileInput.files.length === 0) {
+                    e.preventDefault();
+                    alert('Please select an SSM document file.');
+                    return false;
+                }
+                
+                const file = fileInput.files[0];
+                const maxSize = 10 * 1024 * 1024; // 10MB
+                
+                if (file.size > maxSize) {
+                    e.preventDefault();
+                    alert(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds 10MB limit.`);
+                    return false;
+                }
+                
+                const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                if (!allowedTypes.includes(file.type)) {
+                    e.preventDefault();
+                    alert(`Invalid file type: ${file.type}. Only PDF, JPG, and PNG files are allowed.`);
+                    return false;
+                }
+            });
+        }
+    });
 </script>
 
 <?php include VIEWS_PATH . 'partials/footer.php'; ?>

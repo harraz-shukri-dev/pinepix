@@ -96,6 +96,18 @@ if ($auth->isAdmin()) {
 }
 $activityTrend = $stmt->fetchAll();
 
+// Check if this is first login for approved entrepreneur
+$showWelcomeModal = false;
+if ($auth->isEntrepreneur() && $user['approval_status'] === 'approved' && !$user['first_login_completed']) {
+    $showWelcomeModal = true;
+}
+
 $pageTitle = 'Dashboard';
 include VIEWS_PATH . 'partials/header.php';
+
+// Include welcome modal if needed
+if ($showWelcomeModal) {
+    include VIEWS_PATH . 'partials/welcome-modal.php';
+}
+
 include VIEWS_PATH . 'dashboard.php';

@@ -15,9 +15,9 @@ include VIEWS_PATH . 'partials/header.php';
                 </div>
                 
                 <?php if (isset($error) && $error): ?>
-                    <div class="mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-lg text-red-800 flex items-center justify-between">
-                        <span><i class="fas fa-exclamation-circle mr-2"></i><?= $error ?></span>
-                        <button onclick="this.parentElement.remove()" class="text-red-600 hover:text-red-800">
+                    <div class="mb-4 p-4 <?= isset($status) && $status === 'pending' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' : 'bg-red-50 border-red-200 text-red-800' ?> border-2 rounded-lg flex items-center justify-between">
+                        <span><i class="fas <?= isset($status) && $status === 'pending' ? 'fa-clock' : 'fa-exclamation-circle' ?> mr-2"></i><?= $error ?></span>
+                        <button onclick="this.parentElement.remove()" class="<?= isset($status) && $status === 'pending' ? 'text-yellow-600 hover:text-yellow-800' : 'text-red-600 hover:text-red-800' ?>">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -90,6 +90,18 @@ function togglePassword(fieldId) {
         icon.classList.add('fa-eye');
     }
 }
+
+<?php if (isset($error) && $error): ?>
+document.addEventListener('DOMContentLoaded', function() {
+    <?php if (isset($status) && $status === 'pending'): ?>
+        toast.warning('<?= addslashes($error) ?>');
+    <?php elseif (isset($status) && $status === 'rejected'): ?>
+        toast.error('<?= addslashes($error) ?>');
+    <?php else: ?>
+        toast.error('<?= addslashes($error) ?>');
+    <?php endif; ?>
+});
+<?php endif; ?>
 </script>
 
 <?php include VIEWS_PATH . 'partials/footer.php'; ?>

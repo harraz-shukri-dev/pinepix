@@ -308,6 +308,123 @@ include VIEWS_PATH . 'partials/header.php';
     </div>
 </section>
 
+<!-- Our Entrepreneurs Section -->
+<section id="entrepreneurs" class="py-20 bg-gradient-to-br from-blue-50 via-white to-amber-50 relative overflow-hidden">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-16" data-aos="fade-up">
+            <h2 class="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
+                <i class="fas fa-users mr-3 text-primary-600"></i>Our Entrepreneurs
+            </h2>
+            <p class="text-xl text-gray-600 max-w-2xl mx-auto">Discover our community of approved pineapple entrepreneurs, their farms, and shops</p>
+        </div>
+        
+        <?php if (empty($entrepreneursTableData)): ?>
+            <div class="text-center py-12" data-aos="fade-up">
+                <div class="bg-white rounded-3xl p-12 border-2 border-dashed border-gray-200 max-w-2xl mx-auto">
+                    <i class="fas fa-users text-6xl text-gray-300 mb-4"></i>
+                    <p class="text-xl text-gray-500">No entrepreneurs available at the moment.</p>
+                    <p class="text-gray-400 mt-2">Check back later for updates!</p>
+                </div>
+            </div>
+        <?php else: ?>
+            <div data-aos="fade-up" data-aos-delay="200">
+                <div class="bg-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden">
+                    <table id="entrepreneursTable" class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Name</th>
+                                <th class="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            <?php foreach ($entrepreneursTableData as $entrepreneur): ?>
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                        <div class="flex flex-col gap-1">
+                                            <div class="text-sm font-semibold text-gray-900"><?= htmlspecialchars($entrepreneur['name']) ?></div>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-800 w-fit">
+                                                <?= htmlspecialchars($entrepreneur['state']) ?>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                                        <div class="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+                                            <?php if ($entrepreneur['latitude'] && $entrepreneur['longitude']): ?>
+                                                <a href="https://www.google.com/maps/dir/?api=1&destination=<?= htmlspecialchars($entrepreneur['latitude']) ?>,<?= htmlspecialchars($entrepreneur['longitude']) ?>" 
+                                                   target="_blank" 
+                                                   rel="noopener noreferrer"
+                                                   class="inline-flex items-center justify-center w-8 h-8 sm:w-auto sm:h-auto sm:px-2 sm:px-3 sm:py-1.5 text-xs whitespace-nowrap bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                                                   title="Get Directions">
+                                                    <i class="fas fa-directions"></i>
+                                                    <span class="hidden sm:inline sm:ml-1">Direction</span>
+                                                </a>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($entrepreneur['phone']): ?>
+                                                <?php 
+                                                // Clean phone number for WhatsApp (remove spaces, dashes, etc.)
+                                                $cleanPhone = preg_replace('/[^0-9]/', '', $entrepreneur['phone']);
+                                                // Ensure it starts with country code 60 (Malaysia)
+                                                if (substr($cleanPhone, 0, 1) === '0') {
+                                                    $cleanPhone = '60' . substr($cleanPhone, 1);
+                                                } elseif (substr($cleanPhone, 0, 2) !== '60') {
+                                                    $cleanPhone = '60' . $cleanPhone;
+                                                }
+                                                ?>
+                                                <a href="tel:<?= htmlspecialchars($entrepreneur['phone']) ?>" 
+                                                   class="inline-flex items-center justify-center w-8 h-8 sm:w-auto sm:h-auto sm:px-2 sm:px-3 sm:py-1.5 text-xs whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                                                   title="Call">
+                                                    <i class="fas fa-phone"></i>
+                                                    <span class="hidden sm:inline sm:ml-1">Call</span>
+                                                </a>
+                                                <a href="https://wa.me/<?= htmlspecialchars($cleanPhone) ?>" 
+                                                   target="_blank"
+                                                   rel="noopener noreferrer"
+                                                   class="inline-flex items-center justify-center w-8 h-8 sm:w-auto sm:h-auto sm:px-2 sm:px-3 sm:py-1.5 text-xs whitespace-nowrap bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                                                   title="WhatsApp">
+                                                    <i class="fab fa-whatsapp"></i>
+                                                    <span class="hidden sm:inline sm:ml-1">WhatsApp</span>
+                                                </a>
+                                            <?php endif; ?>
+                                            
+                                            <button 
+                                                type="button" 
+                                                onclick="viewEntrepreneurDetails(<?= htmlspecialchars(json_encode($entrepreneur), ENT_QUOTES, 'UTF-8') ?>)"
+                                                class="inline-flex items-center justify-center w-8 h-8 sm:w-auto sm:h-auto sm:px-2 sm:px-3 sm:py-1.5 text-xs whitespace-nowrap bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+                                                title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                                <span class="hidden sm:inline sm:ml-1">Details</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+</section>
+
+<!-- Entrepreneur Details Modal -->
+<div id="entrepreneurDetailsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+            <h3 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
+                <i class="fas fa-user mr-2 sm:mr-3 text-primary-600"></i>
+                <span id="modalEntrepreneurName">Entrepreneur Details</span>
+            </h3>
+            <button type="button" onclick="closeEntrepreneurModal()" class="p-2 rounded-full hover:bg-gray-100 focus:outline-none">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        <div class="p-4 sm:p-6" id="modalContent">
+            <!-- Content will be populated by JavaScript -->
+        </div>
+    </div>
+</div>
+
 <!-- Current Market Price Section -->
 <section class="py-20 bg-gradient-to-br from-green-50 via-yellow-50 to-amber-50 relative overflow-hidden">
     <div class="container mx-auto px-4">
@@ -1676,6 +1793,293 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const chart = new ApexCharts(chartEl, options);
     chart.render();
+});
+</script>
+
+<script>
+// Set BASE_URL as JavaScript constant
+const BASE_URL = '<?= BASE_URL ?>';
+
+// Entrepreneurs Table and Modal Functions
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Entrepreneurs DataTable with 10 per page
+    // Check if table exists and is not already initialized
+    const entrepreneursTable = document.getElementById('entrepreneursTable');
+    if (entrepreneursTable && typeof $.fn.DataTable !== 'undefined') {
+        // Check if DataTable is already initialized
+        if (!$.fn.DataTable.isDataTable('#entrepreneursTable')) {
+            const isMobile = window.innerWidth < 640;
+            $(entrepreneursTable).DataTable({
+                pageLength: 10,
+                order: [[0, 'asc']], // Sort by name ascending
+                language: {
+                    search: "Search:",
+                    lengthMenu: "Show _MENU_ entries",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    infoEmpty: "Showing 0 to 0 of 0 entries",
+                    infoFiltered: "(filtered from _MAX_ total entries)",
+                    paginate: {
+                        first: "First",
+                        last: "Last",
+                        next: "Next",
+                        previous: "Previous"
+                    },
+                    emptyTable: "No data available in table",
+                    zeroRecords: "No matching records found"
+                },
+                responsive: {
+                    details: {
+                        type: 'column',
+                        target: 'tr'
+                    },
+                    breakpoints: [
+                        { name: 'desktop', width: Infinity },
+                        { name: 'tablet', width: 768 },
+                        { name: 'mobile', width: 640 }
+                    ]
+                },
+                dom: isMobile 
+                    ? '<"flex flex-col space-y-2 mb-4"<"w-full"f><"w-full"l>>rt<"flex flex-col space-y-2 mt-4"<"w-full text-center"i><"w-full text-center"p>>'
+                    : '<"flex flex-row justify-between items-center mb-4"<"w-auto"l><"w-auto"f>>rt<"flex flex-row justify-between items-center mt-4"<"w-auto"i><"w-auto"p>>',
+                columnDefs: [
+                    { 
+                        responsivePriority: 1, 
+                        targets: 0 // Name column (always visible)
+                    },
+                    { 
+                        responsivePriority: 2, 
+                        targets: -1 // Actions column (always visible)
+                    }
+                ]
+            });
+        }
+    }
+});
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function viewEntrepreneurDetails(entrepreneur) {
+    const modal = document.getElementById('entrepreneurDetailsModal');
+    const modalContent = document.getElementById('modalContent');
+    const modalName = document.getElementById('modalEntrepreneurName');
+    
+    if (!modal || !modalContent || !modalName) return;
+    
+    // Set entrepreneur name
+    modalName.textContent = entrepreneur.name || 'Entrepreneur Details';
+    
+    // Build modal content
+    let html = `
+        <div class="space-y-6">
+            <!-- Entrepreneur Info -->
+            <div class="bg-gradient-to-r from-primary-50 to-amber-50 rounded-xl p-4 sm:p-6 border-2 border-primary-200">
+                <h4 class="text-xl font-bold text-gray-900 mb-3">${escapeHtml(entrepreneur.name || 'N/A')}</h4>
+                ${entrepreneur.business_category ? `<p class="text-sm text-gray-600 mb-2"><i class="fas fa-briefcase mr-1 text-primary-600"></i>${escapeHtml(entrepreneur.business_category)}</p>` : ''}
+                ${entrepreneur.address ? `<p class="text-sm text-gray-600 mb-2"><i class="fas fa-map-marker-alt mr-1 text-primary-600"></i>${escapeHtml(entrepreneur.address)}</p>` : ''}
+                ${entrepreneur.phone ? `
+                    <p class="text-sm text-gray-600 mb-2"><i class="fas fa-phone mr-1 text-primary-600"></i><a href="tel:${escapeHtml(entrepreneur.phone)}" class="hover:text-primary-600 hover:underline">${escapeHtml(entrepreneur.phone)}</a></p>
+                ` : ''}
+            </div>
+    `;
+    
+    // Farms Section
+    if (entrepreneur.farms && entrepreneur.farms.length > 0) {
+        html += `
+            <div>
+                <h5 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-seedling mr-2 text-green-600"></i>
+                    Farms (${entrepreneur.farms.length})
+                </h5>
+                <div class="space-y-3">
+        `;
+        
+        entrepreneur.farms.forEach(farm => {
+            html += `
+                <div class="bg-green-50 rounded-xl p-4 border-2 border-green-100">
+                    <h6 class="font-semibold text-gray-900 mb-2">${escapeHtml(farm.farm_name || 'Unnamed Farm')}</h6>
+                    ${farm.address ? `<p class="text-sm text-gray-600 mb-2"><i class="fas fa-map-marker-alt mr-2 text-green-600"></i>${escapeHtml(farm.address)}</p>` : ''}
+                    ${farm.latitude && farm.longitude ? `
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${farm.latitude},${farm.longitude}" 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-directions mr-1.5"></i>
+                            Get Directions
+                        </a>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        html += `</div></div>`;
+    }
+    
+    // Shops Section
+    if (entrepreneur.shops && entrepreneur.shops.length > 0) {
+        html += `
+            <div>
+                <h5 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-store mr-2 text-purple-600"></i>
+                    Shops (${entrepreneur.shops.length})
+                </h5>
+                <div class="space-y-3">
+        `;
+        
+        entrepreneur.shops.forEach(shop => {
+            html += `
+                <div class="bg-purple-50 rounded-xl p-4 border-2 border-purple-100">
+                    <h6 class="font-semibold text-gray-900 mb-2">${escapeHtml(shop.shop_name || 'Unnamed Shop')}</h6>
+                    ${shop.address ? `<p class="text-sm text-gray-600 mb-2"><i class="fas fa-map-marker-alt mr-2 text-purple-600"></i>${escapeHtml(shop.address)}</p>` : ''}
+                    ${shop.operation_hours ? `<p class="text-sm text-gray-600 mb-2"><i class="fas fa-clock mr-2 text-purple-600"></i>${escapeHtml(shop.operation_hours)}</p>` : ''}
+                    ${shop.contact ? `<p class="text-sm text-gray-600 mb-2"><i class="fas fa-phone mr-2 text-purple-600"></i><a href="tel:${escapeHtml(shop.contact)}" class="hover:text-purple-600 hover:underline">${escapeHtml(shop.contact)}</a></p>` : ''}
+                    ${shop.latitude && shop.longitude ? `
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${shop.latitude},${shop.longitude}" 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           class="inline-flex items-center px-3 py-1.5 bg-purple-600 text-white text-xs font-semibold rounded-lg hover:bg-purple-700 transition-colors">
+                            <i class="fas fa-directions mr-1.5"></i>
+                            Get Directions
+                        </a>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        html += `</div></div>`;
+    }
+    
+    // Social Links Section
+    if (entrepreneur.social_links) {
+        const socialLinks = entrepreneur.social_links;
+        const hasSocialLinks = (socialLinks.facebook || socialLinks.instagram || socialLinks.tiktok || 
+                                socialLinks.website || socialLinks.shopee || socialLinks.lazada);
+        
+        if (hasSocialLinks) {
+            html += `
+                <div>
+                    <h5 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-share-alt mr-2 text-blue-600"></i>
+                        Social Links
+                    </h5>
+                    <div class="flex flex-wrap gap-3">
+            `;
+            
+            if (socialLinks.facebook) {
+                html += `
+                    <a href="${escapeHtml(socialLinks.facebook)}" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       class="w-10 h-10 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition transform hover:scale-110"
+                       title="Facebook">
+                        <i class="fab fa-facebook"></i>
+                    </a>
+                `;
+            }
+            
+            if (socialLinks.instagram) {
+                html += `
+                    <a href="${escapeHtml(socialLinks.instagram)}" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       class="w-10 h-10 flex items-center justify-center bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition transform hover:scale-110"
+                       title="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                `;
+            }
+            
+            if (socialLinks.tiktok) {
+                html += `
+                    <a href="${escapeHtml(socialLinks.tiktok)}" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       class="w-10 h-10 flex items-center justify-center bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition transform hover:scale-110"
+                       title="TikTok">
+                        <i class="fab fa-tiktok"></i>
+                    </a>
+                `;
+            }
+            
+            if (socialLinks.website) {
+                html += `
+                    <a href="${escapeHtml(socialLinks.website)}" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       class="w-10 h-10 flex items-center justify-center bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition transform hover:scale-110"
+                       title="Website">
+                        <i class="fas fa-globe"></i>
+                    </a>
+                `;
+            }
+            
+            if (socialLinks.shopee) {
+                html += `
+                    <a href="${escapeHtml(socialLinks.shopee)}" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       class="w-10 h-10 flex items-center justify-center bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition transform hover:scale-110"
+                       title="Shopee">
+                        <i class="fas fa-shopping-cart"></i>
+                    </a>
+                `;
+            }
+            
+            if (socialLinks.lazada) {
+                html += `
+                    <a href="${escapeHtml(socialLinks.lazada)}" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       class="w-10 h-10 flex items-center justify-center bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition transform hover:scale-110"
+                       title="Lazada">
+                        <i class="fas fa-shopping-bag"></i>
+                    </a>
+                `;
+            }
+            
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    html += `</div>`;
+    
+    modalContent.innerHTML = html;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEntrepreneurModal() {
+    const modal = document.getElementById('entrepreneurDetailsModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+}
+
+// Close modal on outside click
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('entrepreneurDetailsModal');
+    if (modal && e.target === modal) {
+        closeEntrepreneurModal();
+    }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('entrepreneurDetailsModal');
+        if (modal && !modal.classList.contains('hidden')) {
+            closeEntrepreneurModal();
+        }
+    }
 });
 </script>
 

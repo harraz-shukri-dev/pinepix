@@ -118,6 +118,51 @@ include VIEWS_PATH . 'partials/header.php';
                                         <strong class="block text-xs sm:text-sm font-medium text-gray-500 mb-1">IC/Passport:</strong>
                                         <p class="text-sm sm:text-base text-gray-900 break-all"><?= htmlspecialchars($user['ic_passport'] ?? 'Not provided') ?></p>
                                     </div>
+                                    <?php if ($user['role'] === 'entrepreneur'): ?>
+                                        <div>
+                                            <strong class="block text-xs sm:text-sm font-medium text-gray-500 mb-1">SSM Number:</strong>
+                                            <p class="text-sm sm:text-base text-gray-900 break-all"><?= htmlspecialchars($user['ssm_no'] ?? 'Not provided') ?></p>
+                                        </div>
+                                        <div>
+                                            <strong class="block text-xs sm:text-sm font-medium text-gray-500 mb-1">SSM Document:</strong>
+                                            <?php if (!empty($user['ssm_document'])): ?>
+                                                <div class="flex items-center gap-2">
+                                                    <a href="<?= BASE_URL . $user['ssm_document'] ?>" target="_blank" class="inline-flex items-center text-primary-600 hover:text-primary-700 text-sm sm:text-base">
+                                                        <i class="fas fa-file-pdf mr-1.5"></i>
+                                                        <span>View Document</span>
+                                                        <i class="fas fa-external-link-alt ml-1.5 text-xs"></i>
+                                                    </a>
+                                                </div>
+                                            <?php else: ?>
+                                                <p class="text-sm sm:text-base text-gray-500">Not uploaded</p>
+                                            <?php endif; ?>
+                                        </div>
+                                        <?php if ($isOwnProfile): ?>
+                                            <div>
+                                                <strong class="block text-xs sm:text-sm font-medium text-gray-500 mb-1">Account Status:</strong>
+                                                <?php
+                                                $status = $user['approval_status'] ?? 'pending';
+                                                $statusColors = [
+                                                    'pending' => 'bg-yellow-100 text-yellow-800',
+                                                    'approved' => 'bg-green-100 text-green-800',
+                                                    'rejected' => 'bg-red-100 text-red-800'
+                                                ];
+                                                $statusIcons = [
+                                                    'pending' => 'fa-clock',
+                                                    'approved' => 'fa-check-circle',
+                                                    'rejected' => 'fa-times-circle'
+                                                ];
+                                                ?>
+                                                <span class="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-semibold <?= $statusColors[$status] ?>">
+                                                    <i class="fas <?= $statusIcons[$status] ?> mr-1.5"></i>
+                                                    <span class="capitalize"><?= $status ?></span>
+                                                </span>
+                                                <?php if ($status === 'rejected' && !empty($user['rejection_reason'])): ?>
+                                                    <p class="text-xs text-gray-600 mt-1">Reason: <?= htmlspecialchars($user['rejection_reason']) ?></p>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
                                     <div class="md:col-span-2">
                                         <strong class="block text-xs sm:text-sm font-medium text-gray-500 mb-1">Address:</strong>
                                         <p class="text-sm sm:text-base text-gray-900 whitespace-pre-line break-words"><?= htmlspecialchars($user['address'] ?? 'Not provided') ?></p>

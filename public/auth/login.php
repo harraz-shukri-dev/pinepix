@@ -11,6 +11,7 @@ if ($auth->isLoggedIn()) {
 
 $error = '';
 $success = '';
+$status = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = Helper::sanitize($_POST['email'] ?? '');
@@ -22,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         Helper::redirect(BASE_URL . 'dashboard.php');
     } else {
         $error = $result['message'];
+        $status = $result['status'] ?? '';
     }
 }
 

@@ -1,7 +1,7 @@
 {
-    "price": 4.62,
+    "price": 4.63,
     "unit": "per piece",
-    "week": 48,
+    "week": 49,
     "year": 2025,
     "update_date": ":",
     "source": "ManaMurah.com",
@@ -9,11 +9,11 @@
         "PriceCatcher KPDN",
         "Open DOSM"
     ],
-    "last_updated": "2025-12-01 22:29:31",
+    "last_updated": "2025-12-06 07:48:12",
     "state_averages": [
         {
             "state": "Johor",
-            "average_price": 3.99,
+            "average_price": 4.49,
             "price_change": null,
             "percent_change": "0%"
         },
@@ -25,31 +25,31 @@
         },
         {
             "state": "Kelantan",
-            "average_price": 4.12,
+            "average_price": 3.99,
             "price_change": null,
             "percent_change": "0%"
         },
         {
             "state": "Melaka",
-            "average_price": 4.22,
+            "average_price": 4.13,
             "price_change": null,
             "percent_change": "0%"
         },
         {
             "state": "Pahang",
-            "average_price": 4.89,
+            "average_price": 4.94,
             "price_change": null,
             "percent_change": "0%"
         },
         {
             "state": "Penang",
-            "average_price": 3.96,
+            "average_price": 4.01,
             "price_change": null,
             "percent_change": "0%"
         },
         {
             "state": "Perak",
-            "average_price": 4.24,
+            "average_price": 4.25,
             "price_change": null,
             "percent_change": "0%"
         },
@@ -67,13 +67,13 @@
         },
         {
             "state": "Kuala Lumpur",
-            "average_price": 5.06,
+            "average_price": 5.05,
             "price_change": null,
             "percent_change": "0%"
         },
         {
             "state": "Putrajaya",
-            "average_price": 4.59,
+            "average_price": 4.54,
             "price_change": null,
             "percent_change": "0%"
         }
@@ -83,7 +83,7 @@
             "state": "Johor",
             "shop": "Harga",
             "date": null,
-            "price": 3.99
+            "price": 4.49
         },
         {
             "state": "Kedah",
@@ -95,31 +95,31 @@
             "state": "Kelantan",
             "shop": "Harga",
             "date": null,
-            "price": 4.12
+            "price": 3.99
         },
         {
             "state": "Melaka",
             "shop": "Harga",
             "date": null,
-            "price": 4.22
+            "price": 4.13
         },
         {
             "state": "Pahang",
             "shop": "Harga",
             "date": null,
-            "price": 4.89
+            "price": 4.94
         },
         {
             "state": "Penang",
             "shop": "Harga",
             "date": null,
-            "price": 3.96
+            "price": 4.01
         },
         {
             "state": "Perak",
             "shop": "Harga",
             "date": null,
-            "price": 4.24
+            "price": 4.25
         },
         {
             "state": "Selangor",
@@ -137,13 +137,13 @@
             "state": "Kuala Lumpur",
             "shop": "Harga",
             "date": null,
-            "price": 5.06
+            "price": 5.05
         },
         {
             "state": "Putrajaya",
             "shop": "Harga",
             "date": null,
-            "price": 4.59
+            "price": 4.54
         }
     ]
 }

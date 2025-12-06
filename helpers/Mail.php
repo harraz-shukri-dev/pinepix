@@ -38,6 +38,46 @@ class Mail {
     }
     
     /**
+     * Send new registration notification to admin
+     * @param string $name Entrepreneur name
+     * @param string $email Entrepreneur email
+     * @param int $userId User ID
+     * @param bool $isReapplication Whether this is a re-application after rejection
+     * @return bool
+     */
+    public static function sendNewRegistrationNotification($name, $email, $userId, $isReapplication = false) {
+        $to = defined('MAIL_REPLY_TO') ? MAIL_REPLY_TO : MAIL_FROM_EMAIL;
+        $subject = $isReapplication ? 'Entrepreneur Re-application - ' . APP_NAME : 'New Entrepreneur Registration - ' . APP_NAME;
+        $message = self::getNewRegistrationTemplate($name, $email, $userId, $isReapplication);
+        return self::sendMail($to, $subject, $message);
+    }
+    
+    /**
+     * Send approval notification to entrepreneur
+     * @param string $email Entrepreneur email
+     * @param string $name Entrepreneur name
+     * @return bool
+     */
+    public static function sendApprovalNotification($email, $name) {
+        $subject = 'Account Approved - ' . APP_NAME;
+        $message = self::getApprovalTemplate($name);
+        return self::sendMail($email, $subject, $message);
+    }
+    
+    /**
+     * Send rejection notification to entrepreneur
+     * @param string $email Entrepreneur email
+     * @param string $name Entrepreneur name
+     * @param string $reason Rejection reason
+     * @return bool
+     */
+    public static function sendRejectionNotification($email, $name, $reason) {
+        $subject = 'Account Application Status - ' . APP_NAME;
+        $message = self::getRejectionTemplate($name, $reason);
+        return self::sendMail($email, $subject, $message);
+    }
+    
+    /**
      * Get contact form email template
      * @param string $name Sender name
      * @param string $email Sender email
@@ -391,6 +431,165 @@ class Mail {
         }
         
         return $result;
+    }
+    
+    /**
+     * Get new registration notification template
+     * @param string $name Entrepreneur name
+     * @param string $email Entrepreneur email
+     * @param int $userId User ID
+     * @param bool $isReapplication Whether this is a re-application after rejection
+     * @return string
+     */
+    private static function getNewRegistrationTemplate($name, $email, $userId, $isReapplication = false) {
+        $reviewLink = BASE_URL . 'admin/entrepreneurs.php?edit=' . $userId;
+        $title = $isReapplication ? 'Entrepreneur Re-application' : 'New Entrepreneur Registration';
+        $headerText = $isReapplication ? 'Re-application Pending Review' : 'New Registration Pending Review';
+        $bodyText = $isReapplication 
+            ? 'An entrepreneur whose previous application was rejected has submitted a new application and is waiting for approval:'
+            : 'A new entrepreneur has registered and is waiting for approval:';
+        
+        $html = '
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>' . ($isReapplication ? 'Re-application' : 'New Registration') . '</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">' . APP_NAME . '</h1>
+        <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">' . $title . '</p>
+    </div>
+    
+    <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #1f2937; margin-top: 0;">' . $headerText . '</h2>
+        
+        <p>' . $bodyText . '</p>
+        
+        <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0;"><strong style="color: #374151;">Name:</strong> ' . htmlspecialchars($name) . '</p>
+            <p style="margin: 0;"><strong style="color: #374151;">Email:</strong> <a href="mailto:' . htmlspecialchars($email) . '" style="color: #f59e0b; text-decoration: none;">' . htmlspecialchars($email) . '</a></p>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="' . htmlspecialchars($reviewLink) . '" 
+               style="display: inline-block; background: #f59e0b; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Review Application
+            </a>
+        </div>
+        
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Best regards,<br>
+            <strong>' . APP_NAME . ' System</strong>
+        </p>
+    </div>
+</body>
+</html>';
+        return $html;
+    }
+    
+    /**
+     * Get approval notification template
+     * @param string $name Entrepreneur name
+     * @return string
+     */
+    private static function getApprovalTemplate($name) {
+        $loginLink = BASE_URL . 'auth/login.php';
+        $html = '
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Approved</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">' . APP_NAME . '</h1>
+    </div>
+    
+    <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #1f2937; margin-top: 0;">🎉 Account Approved!</h2>
+        
+        <p>Hello ' . htmlspecialchars($name) . ',</p>
+        
+        <p>Great news! Your entrepreneur account has been approved by our admin team.</p>
+        
+        <p>You can now log in to your account and start using all the features of ' . APP_NAME . '.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="' . htmlspecialchars($loginLink) . '" 
+               style="display: inline-block; background: #10b981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Login to Your Account
+            </a>
+        </div>
+        
+        <div style="background: #ecfdf5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; color: #065f46; font-size: 14px;">
+                <strong>Welcome!</strong> We\'re excited to have you on board. If you have any questions, feel free to contact our support team.
+            </p>
+        </div>
+        
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Best regards,<br>
+            <strong>' . APP_NAME . ' Team</strong>
+        </p>
+    </div>
+</body>
+</html>';
+        return $html;
+    }
+    
+    /**
+     * Get rejection notification template
+     * @param string $name Entrepreneur name
+     * @param string $reason Rejection reason
+     * @return string
+     */
+    private static function getRejectionTemplate($name, $reason) {
+        $html = '
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Status</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">' . APP_NAME . '</h1>
+    </div>
+    
+    <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #1f2937; margin-top: 0;">Application Status Update</h2>
+        
+        <p>Hello ' . htmlspecialchars($name) . ',</p>
+        
+        <p>We regret to inform you that your entrepreneur account application has been reviewed and unfortunately, it has not been approved at this time.</p>
+        
+        <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0 0 10px 0; color: #991b1b; font-size: 14px; font-weight: bold;">Reason:</p>
+            <p style="margin: 0; color: #7f1d1d; font-size: 14px; white-space: pre-wrap;">' . nl2br(htmlspecialchars($reason)) . '</p>
+        </div>
+        
+        <p>If you believe this is an error or would like to resubmit your application with additional information, please contact our support team.</p>
+        
+        <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; color: #92400e; font-size: 14px;">
+                <strong>Note:</strong> You can register again with updated information if you wish to reapply.
+            </p>
+        </div>
+        
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Best regards,<br>
+            <strong>' . APP_NAME . ' Team</strong>
+        </p>
+    </div>
+</body>
+</html>';
+        return $html;
     }
 }
 

@@ -24,15 +24,97 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $userId = $_POST['user_id'] ?? null;
     
-    if ($action === 'delete' && $userId) {
+    if ($action === 'approve' && $userId) {
         try {
-            $stmt = $db->prepare("DELETE FROM users WHERE id = ? AND role = 'entrepreneur'");
-            $stmt->execute([$userId]);
-            $message = 'Entrepreneur deleted successfully!';
-            $messageType = 'success';
+            if ($auth->approveEntrepreneur($userId, $_SESSION['user_id'])) {
+                $_SESSION['success_message'] = 'Entrepreneur approved successfully!';
+            } else {
+                $_SESSION['error_message'] = 'Failed to approve entrepreneur.';
+            }
+            Helper::redirect(BASE_URL . 'admin/entrepreneurs.php');
         } catch (Exception $e) {
-            $message = 'Failed to delete entrepreneur.';
-            $messageType = 'error';
+            $_SESSION['error_message'] = 'An error occurred while approving the entrepreneur.';
+            Helper::redirect(BASE_URL . 'admin/entrepreneurs.php');
+        }
+    } elseif ($action === 'reject' && $userId) {
+        try {
+            $reason = Helper::sanitize($_POST['rejection_reason'] ?? '');
+            if (empty($reason)) {
+                $_SESSION['error_message'] = 'Rejection reason is required.';
+            } else {
+                if ($auth->rejectEntrepreneur($userId, $_SESSION['user_id'], $reason)) {
+                    $_SESSION['success_message'] = 'Entrepreneur rejected successfully!';
+                } else {
+                    $_SESSION['error_message'] = 'Failed to reject entrepreneur.';
+                }
+            }
+            Helper::redirect(BASE_URL . 'admin/entrepreneurs.php');
+        } catch (Exception $e) {
+            $_SESSION['error_message'] = 'An error occurred while rejecting the entrepreneur.';
+            Helper::redirect(BASE_URL . 'admin/entrepreneurs.php');
+        }
+    } elseif ($action === 'delete' && $userId) {
+        try {
+            // Get user data first to delete associated files
+            $stmt = $db->prepare("SELECT ssm_document, profile_image FROM users WHERE id = ? AND role = 'entrepreneur'");
+            $stmt->execute([$userId]);
+            $userToDelete = $stmt->fetch();
+            
+            if ($userToDelete) {
+                // Delete SSM document if exists
+                if (!empty($userToDelete['ssm_document'])) {
+                    Helper::deleteFile($userToDelete['ssm_document']);
+                }
+                
+                // Delete profile image if exists
+                if (!empty($userToDelete['profile_image'])) {
+                    Helper::deleteFile($userToDelete['profile_image']);
+                }
+                
+                // Get and delete farm images before cascade delete
+                $stmt = $db->prepare("SELECT images FROM farms WHERE user_id = ?");
+                $stmt->execute([$userId]);
+                $farms = $stmt->fetchAll();
+                foreach ($farms as $farm) {
+                    if (!empty($farm['images'])) {
+                        $farmImages = json_decode($farm['images'], true);
+                        if (is_array($farmImages)) {
+                            foreach ($farmImages as $img) {
+                                Helper::deleteFile($img);
+                            }
+                        }
+                    }
+                }
+                
+                // Get and delete shop images before cascade delete
+                $stmt = $db->prepare("SELECT images FROM shops WHERE user_id = ?");
+                $stmt->execute([$userId]);
+                $shops = $stmt->fetchAll();
+                foreach ($shops as $shop) {
+                    if (!empty($shop['images'])) {
+                        $shopImages = json_decode($shop['images'], true);
+                        if (is_array($shopImages)) {
+                            foreach ($shopImages as $img) {
+                                Helper::deleteFile($img);
+                            }
+                        }
+                    }
+                }
+                
+                // Delete user (cascade will handle farms, shops, social_links tables)
+                $stmt = $db->prepare("DELETE FROM users WHERE id = ? AND role = 'entrepreneur'");
+                if ($stmt->execute([$userId])) {
+                    $_SESSION['success_message'] = 'Entrepreneur deleted successfully!';
+                } else {
+                    $_SESSION['error_message'] = 'Failed to delete entrepreneur.';
+                }
+            } else {
+                $_SESSION['error_message'] = 'Entrepreneur not found.';
+            }
+            Helper::redirect(BASE_URL . 'admin/entrepreneurs.php');
+        } catch (Exception $e) {
+            $_SESSION['error_message'] = 'An error occurred while deleting the entrepreneur.';
+            Helper::redirect(BASE_URL . 'admin/entrepreneurs.php');
         }
     } elseif ($action === 'update' && $userId) {
         try {
@@ -43,10 +125,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'gender' => Helper::sanitize($_POST['gender'] ?? ''),
                 'ic_passport' => Helper::sanitize($_POST['ic_passport'] ?? ''),
                 'business_category' => Helper::sanitize($_POST['business_category'] ?? ''),
+                'ssm_no' => Helper::sanitize($_POST['ssm_no'] ?? ''),
             ];
             
-            $stmt = $db->prepare("UPDATE users SET name = ?, phone = ?, address = ?, gender = ?, ic_passport = ?, business_category = ? WHERE id = ? AND role = 'entrepreneur'");
-            if ($stmt->execute([$data['name'], $data['phone'], $data['address'], $data['gender'], $data['ic_passport'], $data['business_category'], $userId])) {
+            $stmt = $db->prepare("UPDATE users SET name = ?, phone = ?, address = ?, gender = ?, ic_passport = ?, business_category = ?, ssm_no = ? WHERE id = ? AND role = 'entrepreneur'");
+            if ($stmt->execute([$data['name'], $data['phone'], $data['address'], $data['gender'], $data['ic_passport'], $data['business_category'], $data['ssm_no'], $userId])) {
                 $_SESSION['success_message'] = 'Entrepreneur updated successfully!';
             } else {
                 $_SESSION['error_message'] = 'Failed to update entrepreneur.';
@@ -59,16 +142,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get all entrepreneurs with farm and shop counts
+// Get all entrepreneurs with farm and shop counts, and admin who approved
 $stmt = $db->query("
     SELECT u.*, 
            (SELECT COUNT(*) FROM farms WHERE user_id = u.id) as farm_count,
-           (SELECT COUNT(*) FROM shops WHERE user_id = u.id) as shop_count
+           (SELECT COUNT(*) FROM shops WHERE user_id = u.id) as shop_count,
+           approver.name as approved_by_name
     FROM users u 
+    LEFT JOIN users approver ON u.approved_by = approver.id
     WHERE u.role = 'entrepreneur'
-    ORDER BY u.created_at DESC
+    ORDER BY 
+        CASE u.approval_status 
+            WHEN 'pending' THEN 1 
+            WHEN 'rejected' THEN 2 
+            WHEN 'approved' THEN 3 
+        END,
+        u.created_at DESC
 ");
 $entrepreneurs = $stmt->fetchAll();
+
+// Check for session messages
+if (isset($_SESSION['success_message'])) {
+    $message = $_SESSION['success_message'];
+    $messageType = 'success';
+    unset($_SESSION['success_message']);
+} elseif (isset($_SESSION['error_message'])) {
+    $message = $_SESSION['error_message'];
+    $messageType = 'error';
+    unset($_SESSION['error_message']);
+}
 
 $pageTitle = 'Manage Entrepreneurs';
 include VIEWS_PATH . 'partials/header.php';
@@ -116,6 +218,7 @@ include VIEWS_PATH . 'partials/header.php';
                                                     <th class="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Name</th>
                                                     <th class="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Email</th>
                                                     <th class="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hidden md:table-cell">Phone</th>
+                                                    <th class="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
                                                     <th class="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Farms</th>
                                                     <th class="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Shops</th>
                                                     <th class="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hidden lg:table-cell">Created</th>
@@ -170,6 +273,30 @@ include VIEWS_PATH . 'partials/header.php';
                                                             </div>
                                                         </td>
                                                         <td class="px-4 sm:px-6 py-3 sm:py-4">
+                                                            <?php
+                                                            $status = $entrepreneur['approval_status'] ?? 'pending';
+                                                            $statusColors = [
+                                                                'pending' => 'bg-yellow-100 text-yellow-800',
+                                                                'approved' => 'bg-green-100 text-green-800',
+                                                                'rejected' => 'bg-red-100 text-red-800'
+                                                            ];
+                                                            $statusIcons = [
+                                                                'pending' => 'fa-clock',
+                                                                'approved' => 'fa-check-circle',
+                                                                'rejected' => 'fa-times-circle'
+                                                            ];
+                                                            ?>
+                                                            <span class="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-semibold <?= $statusColors[$status] ?>">
+                                                                <i class="fas <?= $statusIcons[$status] ?> mr-1"></i>
+                                                                <span class="capitalize"><?= $status ?></span>
+                                                            </span>
+                                                            <?php if ($status === 'rejected' && $entrepreneur['rejection_reason']): ?>
+                                                                <div class="mt-1 text-xs text-gray-500 max-w-xs truncate" title="<?= htmlspecialchars($entrepreneur['rejection_reason']) ?>">
+                                                                    <i class="fas fa-info-circle mr-1"></i><?= htmlspecialchars(substr($entrepreneur['rejection_reason'], 0, 50)) ?><?= strlen($entrepreneur['rejection_reason']) > 50 ? '...' : '' ?>
+                                                                </div>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <td class="px-4 sm:px-6 py-3 sm:py-4">
                                                             <span class="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
                                                                 <i class="fas fa-seedling mr-1"></i>
                                                                 <span><?= $entrepreneur['farm_count'] ?></span>
@@ -189,15 +316,31 @@ include VIEWS_PATH . 'partials/header.php';
                                                         </td>
                                                         <td class="px-4 sm:px-6 py-3 sm:py-4">
                                                             <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                                                <?php if ($entrepreneur['ssm_document']): ?>
+                                                                    <button type="button" onclick="viewSSMDocument('<?= BASE_URL . $entrepreneur['ssm_document'] ?>', '<?= htmlspecialchars($entrepreneur['ssm_no'] ?? 'N/A') ?>')" class="btn-view inline-flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 text-xs whitespace-nowrap" title="View SSM Document">
+                                                                        <i class="fas fa-file-pdf sm:mr-1.5"></i>
+                                                                        <span class="hidden sm:inline">SSM</span>
+                                                                    </button>
+                                                                <?php endif; ?>
                                                                 <a href="<?= BASE_URL ?>profile.php?user_id=<?= $entrepreneur['id'] ?>" class="btn-view inline-flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 text-xs whitespace-nowrap" title="View">
                                                                     <i class="fas fa-eye sm:mr-1.5"></i>
                                                                     <span class="hidden sm:inline">View</span>
                                                                 </a>
+                                                                <?php if ($status === 'pending'): ?>
+                                                                    <button type="button" onclick="approveEntrepreneur(<?= $entrepreneur['id'] ?>, '<?= htmlspecialchars(addslashes($entrepreneur['name'])) ?>')" class="bg-green-600 hover:bg-green-700 text-white inline-flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 text-xs whitespace-nowrap rounded-lg transition" title="Approve">
+                                                                        <i class="fas fa-check sm:mr-1.5"></i>
+                                                                        <span class="hidden sm:inline">Approve</span>
+                                                                    </button>
+                                                                    <button type="button" onclick="rejectEntrepreneur(<?= $entrepreneur['id'] ?>, '<?= htmlspecialchars(addslashes($entrepreneur['name'])) ?>')" class="bg-red-600 hover:bg-red-700 text-white inline-flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 text-xs whitespace-nowrap rounded-lg transition" title="Reject">
+                                                                        <i class="fas fa-times sm:mr-1.5"></i>
+                                                                        <span class="hidden sm:inline">Reject</span>
+                                                                    </button>
+                                                                <?php endif; ?>
                                                                 <button type="button" onclick="editEntrepreneur(<?= $entrepreneur['id'] ?>)" class="btn-primary inline-flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 text-xs whitespace-nowrap" title="Edit">
                                                                     <i class="fas fa-edit sm:mr-1.5"></i>
                                                                     <span class="hidden sm:inline">Edit</span>
                                                                 </button>
-                                                                <button type="button" onclick="deleteEntrepreneur(<?= $entrepreneur['id'] ?>, '<?= htmlspecialchars(addslashes($entrepreneur['name'])) ?>')" class="btn-delete inline-flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 text-xs whitespace-nowrap" title="Delete">
+                                                                <button type="button" onclick="deleteEntrepreneur(<?= $entrepreneur['id'] ?>, '<?= htmlspecialchars(addslashes($entrepreneur['name'])) ?>')" class="btn-delete inline-flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 text-xs whitespace-nowrap" title="Delete" data-no-global-delete="true">
                                                                     <i class="fas fa-trash sm:mr-1.5"></i>
                                                                     <span class="hidden sm:inline">Delete</span>
                                                                 </button>
@@ -286,6 +429,20 @@ include VIEWS_PATH . 'partials/header.php';
                 </select>
             </div>
             
+            <?php if ($editUser['role'] === 'entrepreneur'): ?>
+            <div class="mb-3 sm:mb-4">
+                <label for="ssm_no" class="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">SSM Number</label>
+                <input type="text" id="ssm_no" name="ssm_no" value="<?= htmlspecialchars($editUser['ssm_no'] ?? '') ?>" placeholder="e.g., 123456789"
+                       class="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition text-sm sm:text-base">
+                <?php if (!empty($editUser['ssm_document'])): ?>
+                    <p class="mt-1 text-xs text-gray-500">
+                        <i class="fas fa-file-pdf mr-1 text-primary-600"></i>
+                        SSM Document: <a href="<?= BASE_URL . $editUser['ssm_document'] ?>" target="_blank" class="text-primary-600 hover:underline">View Document</a>
+                    </p>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+            
             <div class="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 sm:pt-6 border-t-2 border-gray-200 bg-gray-50 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 px-4 sm:px-6 py-3 sm:py-4 rounded-b-xl sm:rounded-b-2xl sticky bottom-0">
                 <button type="button" onclick="closeEditModal()" class="btn-outline-primary w-full sm:w-auto px-4 sm:px-6 py-2.5 text-sm sm:text-base order-2 sm:order-1">
                     <i class="fas fa-times mr-2"></i>Cancel
@@ -323,7 +480,129 @@ function closeEditModal() {
     window.location.href = '<?= BASE_URL ?>admin/entrepreneurs.php';
 }
 
+function approveEntrepreneur(userId, userName) {
+    Swal.fire({
+        title: 'Approve Entrepreneur?',
+        text: `Are you sure you want to approve "${userName}"? They will be able to login and access the system.`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, approve!',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create and submit form
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '';
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'approve';
+            form.appendChild(actionInput);
+            
+            const userIdInput = document.createElement('input');
+            userIdInput.type = 'hidden';
+            userIdInput.name = 'user_id';
+            userIdInput.value = userId;
+            form.appendChild(userIdInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+function rejectEntrepreneur(userId, userName) {
+    Swal.fire({
+        title: 'Reject Entrepreneur Application',
+        html: `
+            <p class="mb-4">Are you sure you want to reject "${userName}"?</p>
+            <label for="rejection_reason" class="block text-sm font-medium text-gray-700 mb-2">Rejection Reason <span class="text-red-500">*</span></label>
+            <textarea id="rejection_reason" class="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none resize-none" rows="4" placeholder="Please provide a reason for rejection..." required></textarea>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Reject Application',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        preConfirm: () => {
+            const reason = document.getElementById('rejection_reason').value.trim();
+            if (!reason) {
+                Swal.showValidationMessage('Rejection reason is required');
+                return false;
+            }
+            return reason;
+        }
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            // Create and submit form
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '';
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'reject';
+            form.appendChild(actionInput);
+            
+            const userIdInput = document.createElement('input');
+            userIdInput.type = 'hidden';
+            userIdInput.name = 'user_id';
+            userIdInput.value = userId;
+            form.appendChild(userIdInput);
+            
+            const reasonInput = document.createElement('input');
+            reasonInput.type = 'hidden';
+            reasonInput.name = 'rejection_reason';
+            reasonInput.value = result.value;
+            form.appendChild(reasonInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+function viewSSMDocument(documentUrl, ssmNo) {
+    const isPDF = documentUrl.toLowerCase().endsWith('.pdf');
+    
+    Swal.fire({
+        title: `SSM Document - ${ssmNo}`,
+        html: `
+            <div class="text-left">
+                <p class="mb-4 text-sm text-gray-600">SSM Number: <strong>${ssmNo}</strong></p>
+                <div class="border-2 border-gray-200 rounded-lg overflow-hidden" style="max-height: 70vh;">
+                    ${isPDF ? 
+                        `<iframe src="${documentUrl}" class="w-full" style="height: 70vh;" frameborder="0"></iframe>` :
+                        `<img src="${documentUrl}" alt="SSM Document" class="w-full h-auto max-h-[70vh] object-contain">`
+                    }
+                </div>
+                <div class="mt-4 flex justify-center gap-2">
+                    <a href="${documentUrl}" target="_blank" class="inline-flex items-center px-4 py-2 bg-primary-400 text-white rounded-lg hover:bg-primary-500 transition">
+                        <i class="fas fa-download mr-2"></i>Download
+                    </a>
+                </div>
+            </div>
+        `,
+        width: '90%',
+        showConfirmButton: true,
+        confirmButtonText: 'Close',
+        confirmButtonColor: '#6b7280',
+        customClass: {
+            popup: 'text-left'
+        }
+    });
+}
+
 function deleteEntrepreneur(userId, userName) {
+    console.log('Attempting to delete entrepreneur', { userId, userName });
     Swal.fire({
         title: 'Are you sure?',
         text: `Do you want to delete entrepreneur "${userName}"? This action cannot be undone!`,
@@ -336,6 +615,7 @@ function deleteEntrepreneur(userId, userName) {
         reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
+            console.log('Delete confirmed for entrepreneur', userId);
             // Create and submit form
             const form = document.createElement('form');
             form.method = 'POST';
@@ -354,6 +634,10 @@ function deleteEntrepreneur(userId, userName) {
             form.appendChild(userIdInput);
             
             document.body.appendChild(form);
+            console.log('Submitting entrepreneur delete form with payload:', {
+                action: actionInput.value,
+                user_id: userIdInput.value
+            });
             form.submit();
         }
     });

@@ -57,6 +57,58 @@ class Helper {
         return ['success' => false, 'message' => 'Failed to move uploaded file'];
     }
     
+    /**
+     * Upload SSM document (PDF, JPG, PNG)
+     * @param array $file Uploaded file array
+     * @param int $userId User ID for filename
+     * @return array
+     */
+    public static function uploadSSMDocument($file, $userId) {
+        if (!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) {
+            return ['success' => false, 'message' => 'File upload error'];
+        }
+        
+        // Max 10MB for SSM documents
+        $maxSize = 10 * 1024 * 1024; // 10MB
+        if ($file['size'] > $maxSize) {
+            return ['success' => false, 'message' => 'File size exceeds 10MB limit'];
+        }
+        
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $file['tmp_name']);
+        finfo_close($finfo);
+        
+        // Allowed types: PDF, JPG, PNG
+        $allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+        if (!in_array($mimeType, $allowedTypes)) {
+            return ['success' => false, 'message' => 'Invalid file type. Only PDF, JPG, and PNG files are allowed.'];
+        }
+        
+        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($extension, ['pdf', 'jpg', 'jpeg', 'png'])) {
+            return ['success' => false, 'message' => 'Invalid file extension'];
+        }
+        
+        $fileName = $userId . '_' . uniqid() . '_' . time() . '.' . $extension;
+        $uploadDir = UPLOAD_PATH . 'ssm/';
+        
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+        
+        $filePath = $uploadDir . $fileName;
+        
+        if (move_uploaded_file($file['tmp_name'], $filePath)) {
+            return [
+                'success' => true,
+                'filename' => $fileName,
+                'path' => 'uploads/ssm/' . $fileName
+            ];
+        }
+        
+        return ['success' => false, 'message' => 'Failed to move uploaded file'];
+    }
+    
     public static function deleteFile($filePath) {
         $fullPath = PUBLIC_PATH . $filePath;
         if (file_exists($fullPath)) {

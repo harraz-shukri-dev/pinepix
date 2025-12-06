@@ -10,16 +10,12 @@ if (preg_match('#^/(config|\.env|\.git|vendor|\.htaccess|router\.php|composer\.(
     exit('Access Forbidden');
 }
 
-// Handle service worker (must be served with correct MIME type and no caching)
+// Handle service worker (must be served with correct MIME type)
 if ($uri === '/sw.js') {
     $filePath = __DIR__ . '/public/sw.js';
     if (file_exists($filePath)) {
         header('Content-Type: application/javascript');
         header('Service-Worker-Allowed: /');
-        // Don't cache service worker
-        header('Cache-Control: no-cache, no-store, must-revalidate');
-        header('Pragma: no-cache');
-        header('Expires: 0');
         readfile($filePath);
         return true;
     }
@@ -43,8 +39,6 @@ if (in_array(ltrim($uri, '/'), $rootStaticFiles)) {
         if (isset($mimeTypes[$extension])) {
             header('Content-Type: ' . $mimeTypes[$extension]);
         }
-        // Cache favicon files for 1 year
-        header('Cache-Control: public, max-age=31536000');
         readfile($filePath);
         return true;
     }
