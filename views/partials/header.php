@@ -36,15 +36,12 @@ $hideHamburger = $isLandingPage || $isAuthPage || $isInfoPage;
     <meta name="apple-mobile-web-app-title" content="PinePix">
     <meta name="mobile-web-app-capable" content="yes">
     <title>PinePix - <?= $pageTitle ?? 'Home' ?></title>
-    <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="<?= BASE_URL ?>favicon.ico?v=1" />
     <link rel="shortcut icon" href="<?= BASE_URL ?>favicon.ico?v=1" />
     <link rel="icon" type="image/png" sizes="96x96" href="<?= BASE_URL ?>favicon-96x96.png?v=1" />
     <link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>favicon.svg?v=1" />
     <link rel="apple-touch-icon" sizes="180x180" href="<?= BASE_URL ?>apple-touch-icon.png?v=1" />
-    <!-- PWA Manifest -->
     <link rel="manifest" href="<?= BASE_URL ?>site.webmanifest?v=1" />
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         // Tailwind config - set after Tailwind loads
@@ -97,26 +94,21 @@ $hideHamburger = $isLandingPage || $isAuthPage || $isInfoPage;
             }
         })();
     </script>
-    <!-- jQuery (must be loaded before DataTables and other jQuery-dependent libraries) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-    <!-- DataTables JS (requires jQuery) -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <!-- Leaflet CSS -->
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- ApexCharts -->
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Swiper.js for Image Carousels -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/main.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/custom.css">
     <?php if (isset($additionalCSS)): ?>
@@ -130,7 +122,6 @@ $hideHamburger = $isLandingPage || $isAuthPage || $isInfoPage;
         <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
             <div class="flex justify-between items-center h-14 sm:h-16">
                 <div class="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-                    <!-- Mobile Hamburger Button -->
                     <?php if (!$hideHamburger): ?>
                         <?php if ($auth->isLoggedIn()): ?>
                             <button class="lg:hidden p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition" onclick="toggleMobileSidebar()" aria-label="Toggle sidebar" id="sidebarToggleBtn">
@@ -209,7 +200,6 @@ $hideHamburger = $isLandingPage || $isAuthPage || $isInfoPage;
                     <?php endif; ?>
                 </div>
                 
-                <!-- Mobile Actions -->
                 <div class="flex items-center space-x-1 sm:space-x-2 lg:hidden relative">
                     <?php if ($auth->isLoggedIn()): ?>
                         <button class="p-1.5 rounded-full hover:bg-gray-100 active:bg-gray-200 transition focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2" onclick="toggleMobileMenu(event)" aria-label="Toggle user menu" id="mobileUserMenuBtn">
@@ -227,7 +217,6 @@ $hideHamburger = $isLandingPage || $isAuthPage || $isInfoPage;
                         </button>
                     <?php endif; ?>
                     
-                    <!-- Mobile menu dropdown -->
                     <div id="mobileMenu" class="hidden lg:hidden bg-white rounded-lg shadow-lg border border-gray-200 py-1.5 absolute right-0 top-full mt-1.5 w-48 z-[60]">
             <?php if ($auth->isLoggedIn()): ?>
                 <a href="<?= BASE_URL ?>index.php" class="user-menu-link" onclick="closeUserMenu()">
@@ -424,6 +413,56 @@ $hideHamburger = $isLandingPage || $isAuthPage || $isInfoPage;
             if (chevron) chevron.classList.remove('rotate-180');
         }
         
+        // Close user menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const userMenu = document.getElementById('userMenu');
+            const dropdown = document.getElementById('userMenuDropdown');
+            const authMenu = document.getElementById('authMenu');
+            const authDropdown = document.getElementById('authMenuDropdown');
+            
+            if (userMenu && dropdown && !userMenu.contains(event.target)) {
+                closeUserMenu();
+            }
+            
+            if (authMenu && authDropdown && !authMenu.contains(event.target)) {
+                closeAuthMenu();
+            }
+        });
+        
+        // Logout confirmation with SweetAlert
+        function confirmLogout(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const logoutUrl = event.currentTarget.href;
+            
+            closeUserMenu();
+            
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: 'Do you want to logout from your account?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, logout!',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = logoutUrl;
+                    }
+                });
+            } else {
+                // Fallback if SweetAlert is not loaded
+                if (confirm('Are you sure you want to logout?')) {
+                    window.location.href = logoutUrl;
+                }
+            }
+            
+            return false;
+        }
+        
         function toggleMobileSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
@@ -518,115 +557,6 @@ $hideHamburger = $isLandingPage || $isAuthPage || $isInfoPage;
                 });
             });
         });
-        
-        // Toggle user menu dropdown
-        function toggleUserMenu() {
-            const dropdown = document.getElementById('userMenuDropdown');
-            const chevron = document.getElementById('userMenuChevron');
-            
-            if (dropdown && chevron) {
-                const isOpen = !dropdown.classList.contains('hidden');
-                
-                if (isOpen) {
-                    dropdown.classList.add('hidden');
-                    chevron.classList.remove('rotate-180');
-                } else {
-                    dropdown.classList.remove('hidden');
-                    chevron.classList.add('rotate-180');
-                }
-            }
-        }
-        
-        function closeUserMenu() {
-            const desktopMenu = document.getElementById('userMenuDropdown');
-            const mobileMenu = document.getElementById('mobileMenu');
-            const chevron = document.getElementById('userMenuChevron');
-            
-            if (desktopMenu) desktopMenu.classList.add('hidden');
-            if (mobileMenu) {
-                mobileMenu.classList.add('hidden');
-                document.body.style.overflow = '';
-            }
-            if (chevron) chevron.classList.remove('rotate-180');
-        }
-        
-        // Toggle auth menu dropdown (for non-logged-in users)
-        function toggleAuthMenu() {
-            const dropdown = document.getElementById('authMenuDropdown');
-            const chevron = document.getElementById('authMenuChevron');
-            const userMenu = document.getElementById('userMenuDropdown');
-            
-            // Close user menu if open
-            if (userMenu) userMenu.classList.add('hidden');
-            
-            if (dropdown && chevron) {
-                const isOpen = !dropdown.classList.contains('hidden');
-                
-                if (isOpen) {
-                    dropdown.classList.add('hidden');
-                    chevron.classList.remove('rotate-180');
-                } else {
-                    dropdown.classList.remove('hidden');
-                    chevron.classList.add('rotate-180');
-                }
-            }
-        }
-        
-        function closeAuthMenu() {
-            const dropdown = document.getElementById('authMenuDropdown');
-            const chevron = document.getElementById('authMenuChevron');
-            
-            if (dropdown) dropdown.classList.add('hidden');
-            if (chevron) chevron.classList.remove('rotate-180');
-        }
-        
-        // Close user menu when clicking outside
-        document.addEventListener('click', function(event) {
-            const userMenu = document.getElementById('userMenu');
-            const dropdown = document.getElementById('userMenuDropdown');
-            const authMenu = document.getElementById('authMenu');
-            const authDropdown = document.getElementById('authMenuDropdown');
-            
-            if (userMenu && dropdown && !userMenu.contains(event.target)) {
-                closeUserMenu();
-            }
-            
-            if (authMenu && authDropdown && !authMenu.contains(event.target)) {
-                closeAuthMenu();
-            }
-        });
-        
-        // Logout confirmation with SweetAlert
-        function confirmLogout(event) {
-            event.preventDefault();
-            event.stopPropagation();
-            const logoutUrl = event.currentTarget.href;
-            
-            closeUserMenu();
-            
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: 'Do you want to logout from your account?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc2626',
-                    cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Yes, logout!',
-                    cancelButtonText: 'Cancel',
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = logoutUrl;
-                    }
-                });
-            } else {
-                // Fallback if SweetAlert is not loaded
-                if (confirm('Are you sure you want to logout?')) {
-                    window.location.href = logoutUrl;
-                }
-            }
-            
-            return false;
-        }
     </script>
+</body>
+</html>
